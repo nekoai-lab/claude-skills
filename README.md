@@ -15,6 +15,7 @@
 | [agent-design-review](./agent-design-review/SKILL.md) | AIエージェントの仕様書・要件定義をレビュー。ハーネス設計・ツール分類・コンテキスト設計・マルチエージェント構成・陳腐化リスクの5軸で問題を検出 | 「仕様書を見て」「設計レビューして」 |
 | [information-design](./information-design/SKILL.md) | スライド・レポート・ダッシュボード・提案書の情報設計。わかりやすく・比較しやすく・誤解なく伝えるための設計原則を適用 | 「情報設計してレビューして」 |
 | [public-dashboard-design](./public-dashboard-design/SKILL.md) | 公共ダッシュボードや説明責任が求められる資料に対して、誤解防止・比較しやすさ・信頼性確保を優先した設計ルールを適用 | 「公共向けのダッシュボードをレビューして」 |
+| [astro-marketing-site-launch](./astro-marketing-site-launch/SKILL.md) | Astro等の静的マーケ/ブログサイトを検索・AI・回遊・モバイル・アクセシビリティに強い状態で作る/監査するチェックリスト。JSON-LD・カテゴリ/タグ静的ページ・llms.txt/RSS/sitemap・関連記事導線・横はみ出しゼロ・ファビコン要件・依存の落とし穴まで網羅 | 「新しいサイトを作る」「公開前チェックして」「SEO/モバイルを見て」 |
 
 ---
 
