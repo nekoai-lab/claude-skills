@@ -83,6 +83,7 @@ description: Astro等の静的マーケ/ブログサイトやLPを「検索・AI
 - **RSS**: `@astrojs/rss` + `<link rel="alternate" type="application/rss+xml">`
 - **サイトマップ**: `@astrojs/sitemap`（`filter` で thanks/rss/llms 除外）→ `/sitemap-index.xml`
 - **robots.txt**: `Sitemap:` 明記、AIクローラ `Allow: /`、`/contact/thanks/` は `Disallow`
+- **Search Console**: サイトマップは **フルURL**（`https://example.com/sitemap-index.xml`）で送信。相対パスだけだと「無効」と出ることがある
 
 ## 3. 回遊性 【回遊】
 
@@ -98,6 +99,47 @@ description: Astro等の静的マーケ/ブログサイトやLPを「検索・AI
 - Grid: `1fr` → `minmax(0,1fr)` + 子に `min-width:0`
 - 広い表: `.twrap{overflow-x:auto}` + JS自動ラップ（二重防止）
 - `overflow-wrap:break-word`、グリッドは 3→2→1 カラム
+
+### SPコンパクト化（フォーム・LP優先）
+
+PCで問題なくても、SPでは装飾ブロックが長くなりフォーム/CVまで届かない。**640px以下（または560px以下）で冗長要素を消し、余白を圧縮**する。
+
+**問い合わせページ**（`contact.astro`）:
+- サイドの信頼3点（メール相談・返信目安・プライバシー）を **SPのみ `display:none`**
+- フォーム下の `fnote` と同意チェックのポリシーリンクで必要情報は維持
+- ヒーロー・メインセクションの `padding` を CSS クラス化して SP で縮小（inline `style` は上書きしづらい）
+- サイド見出しの `<br>` を SP で `display:none` にして1行表示（PCは2行のまま）
+
+```css
+@media (max-width:560px){
+  .contact-chero{padding:28px 0 12px}
+  .contact-main{padding:8px 0 56px}
+  .cside-list,.cside-mark{display:none}
+  .cside-h br{display:none}
+}
+```
+
+**トップページ / LP**（`index.astro`）:
+- Connect the dots 等の **01〜03ステップ一覧**（`.gp-steps`）を SP で非表示
+- `FILE / 01 — …` 等の補足行（`.gp-note-h`）も SP で非表示
+- セクション全体の `.sec{padding}` を SP で `36px 0` 程度に圧縮（デフォルト 52px+ は長い）
+- ヒーロー `.hleft` の padding/gap も縮小
+
+```css
+@media (max-width:640px){
+  .sec{padding:36px 0 !important}
+  .gp-steps,.gp-note-h{display:none}
+  .hleft{padding:32px 0 24px !important;gap:24px !important}
+}
+```
+
+**その他ページの SP 調整例**:
+- Insights おすすめ記事グリッド: 1カラム（横はみ出し防止）
+- Cases KPI パネル: 3列→2列
+- About 実績グリッド: 2列→1列
+- 記事ページ `.alayout`: `grid-template-columns:minmax(0,1fr)` + `.prose{min-width:0}`
+
+**原則**: PCの情報設計は維持し、SPだけ「届くまでの距離」を短くする。消すブロックの代替導線（フォーム下・同意・フッター）を必ず残す。
 
 ## 5. アクセシビリティ 【体験】
 
@@ -140,7 +182,7 @@ description: Astro等の静的マーケ/ブログサイトやLPを「検索・AI
 ### サイト全体での信頼導線
 - フッター Company 欄に **Privacy Policy** 常設
 - 問い合わせフォーム: `<label class="consent"><input required> <a href="/privacy/">プライバシーポリシー</a>に同意</label>`
-- 問い合わせサイド: 「安心のプライバシー」「2営業日以内に返信」を並べる
+- 問い合わせサイド: 「安心のプライバシー」「2営業日以内に返信」を並べる（**PC向け。SPでは §4 のコンパクト化で非表示可**）
 - **thanks ページ**: `noindex` + 受付完了メッセージ（CV計測ポイント）
 - GA4 を入れる時点で §5 の外部送信明示が必須（ポリシーと実装の整合）
 
@@ -239,6 +281,7 @@ Google検索で箱アイコンになる典型原因: 非正方形 / 48px未満 /
 ```
 - [ ] ビルド成功、dist に sitemap/rss/llms/favicon がある
 - [ ] 390px 横スクロールなし
+- [ ] SP: 問い合わせ・トップで冗長ブロック非表示・余白圧縮（フォーム/CVまで届くか）
 - [ ] 記事: 前後ナビ・関連記事・サービス導線
 - [ ] Lighthouse(モバイル) LCP/INP/CLS 目安内
 - [ ] フォーム: 同意必須・二重送信防止・**honeypot**・thanks遷移
@@ -261,6 +304,17 @@ Google検索で箱アイコンになる典型原因: 非正方形 / 48px未満 /
     horizontalOverflow: document.documentElement.scrollWidth > vw + 1, offenders: over.slice(0,15) };
 })()
 ```
+
+## サイト未実装でも次回チェックに残す項目
+
+現サイトでは意図的に後回しにしてよいもの（スキルには残す）:
+
+- GA4 CVイベント / thanks をキーイベント化
+- `firebase.json` セキュリティヘッダ
+- `prefers-reduced-motion`
+- 著者 JSON-LD の `sameAs`（外部URL確定後）
+- Astro `<Image>` による画像最適化
+- 記事本文内の文脈リンク（編集判断）
 
 ## 依存の落とし穴
 
