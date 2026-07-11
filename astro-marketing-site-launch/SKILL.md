@@ -53,6 +53,7 @@ description: Astro等の静的マーケ/ブログサイトやLPを「検索・AI
 ### フォーム完成度（前回の型を踏襲）
 - ネイティブ HTML5 バリデーション + JS `checkValidity()` / `reportValidity()`
 - **二重送信防止**（送信中 `disabled` + 「送信中…」）
+- **honeypot**（隠しフィールド `website`。入力があれば送信せず thanks へ＝ボットを黙って弾く）
 - Google Forms へ `no-cors` POST + `Promise.race` タイムアウト → 失敗でも `thanks` へ遷移
 - `label` と入力の紐付け、`必須/任意` の明示
 
@@ -144,10 +145,47 @@ description: Astro等の静的マーケ/ブログサイトやLPを「検索・AI
 - GA4 を入れる時点で §5 の外部送信明示が必須（ポリシーと実装の整合）
 
 ### フォーム追加要件（土台に上乗せ）
-- **honeypot**（隠しフィールド）を最低限入れる。必要なら Turnstile/reCAPTCHA
 - 送信基盤: Google Forms（簡易）/ Formspree / Firebase Functions（自動返信・Slack通知）
 - 送信失敗時のフォールバック（メール窓口併記）
 - 物販・有料申込があれば **特定商取引法**・利用規約を追加
+
+### ボット・スパム対策（段階的に上げる）【堅牢】
+
+公開直後の海外1件ずつのアクセスは、クローラ・スキャナで異常とは限らない。**フォームスパムだけ段階的に対処**する。
+
+| 段階 | 条件 | 対策 | コスト |
+|------|------|------|--------|
+| **1（初期）** | 公開時点 | **honeypot** | ほぼゼロ |
+| **2** | スパムが週数件以上続く | **Cloudflare Turnstile** or reCAPTCHA | 低（キー取得のみ） |
+| **3** | 大量スパム・攻撃的スキャン | **Cloudflare**（WAF/CDN/ボット管理） | DNS変更あり |
+
+**段階1 honeypot 実装パターン**（`contact.astro`）:
+```html
+<div class="hp" aria-hidden="true">
+  <label for="website">Website</label>
+  <input type="text" name="website" id="website" tabindex="-1" autocomplete="off" />
+</div>
+```
+```css
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+```
+```js
+const hp = form.querySelector('input[name=website]');
+if (hp instanceof HTMLInputElement && hp.value.trim()) {
+  window.location.href = '/contact/thanks/'; return; // 送信せず黙って弾く
+}
+```
+- `display:none` は避ける（一部ボットがスキップするため）
+- 弾いたときも thanks へ遷移させる（ボットに「弾かれた」と悟らせない）
+
+**段階2以降の判断基準**:
+- Google Forms に意味不明な送信が週数件以上
+- 同じIP/文言の連続送信
+- フォーム以外（メール直スパム）も増えたら段階3を検討
+
+**サイト閲覧ボットについて**（別問題）:
+- `robots.txt` で AI クローラは **意図的に Allow**（AIO対策）。悪性ボットのブロックは段階3（WAF）で
+- GA4 の国別1件ずつは公開直後では正常範囲。GA4 は既知ボット除外あり（完全ではない）
 
 ## 7. パフォーマンス / Core Web Vitals 【攻め】
 
@@ -203,7 +241,7 @@ Google検索で箱アイコンになる典型原因: 非正方形 / 48px未満 /
 - [ ] 390px 横スクロールなし
 - [ ] 記事: 前後ナビ・関連記事・サービス導線
 - [ ] Lighthouse(モバイル) LCP/INP/CLS 目安内
-- [ ] フォーム: 同意必須・二重送信防止・honeypot・thanks遷移
+- [ ] フォーム: 同意必須・二重送信防止・**honeypot**・thanks遷移
 - [ ] GA4 CVイベント発火、GSC sitemap送信
 - [ ] プライバシーポリシー: 12章立て・外部送信明示・AI利用方針・制定改定日
 - [ ] フッター/フォーム/問い合わせサイドにポリシー導線
