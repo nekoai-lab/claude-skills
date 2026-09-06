@@ -13,6 +13,7 @@
 |-------|------|-----------|
 | [security-review](./security-review/SKILL.md) | AIが生成・修正したコードをシニアセキュリティエンジニアの視点でレビュー。OWASP Top 10 / OWASP LLM Top 10 / CVSS準拠。GCP / Python / Next.js対応 | 「セキュリティレビューして」 |
 | [agent-design-review](./agent-design-review/SKILL.md) | AIエージェントの仕様書・要件定義をレビュー。ハーネス設計・ツール分類・コンテキスト設計・マルチエージェント構成・陳腐化リスクの5軸で問題を検出 | 「仕様書を見て」「設計レビューして」 |
+| [agent-ops-review](./agent-ops-review/SKILL.md) | 運用中・運用開始前のAIエージェントを「安全に運用できているか」の観点でレビュー。隔離・監視・早期兆候・停止権限・タスク設計・エージェント間通信・認証情報・人の監督・開示の9軸で実運用の事故ポイントを検出。設計側は agent-design-review | 「運用チェックして」「本番に出して大丈夫か見て」 |
 | [information-design](./information-design/SKILL.md) | スライド・レポート・ダッシュボード・提案書の情報設計。わかりやすく・比較しやすく・誤解なく伝えるための設計原則を適用 | 「情報設計してレビューして」 |
 | [public-dashboard-design](./public-dashboard-design/SKILL.md) | 公共ダッシュボードや説明責任が求められる資料に対して、誤解防止・比較しやすさ・信頼性確保を優先した設計ルールを適用 | 「公共向けのダッシュボードをレビューして」 |
 | [astro-marketing-site-launch](./astro-marketing-site-launch/SKILL.md) | Astro等の静的マーケ/ブログ/LPを守り(SEO/AIO)・回遊・体験(モバイル/a11y)・信頼(ポリシー/外部送信/フォーム)・攻め(CWV/CRO/計測)・堅牢・運用の視点で作る/監査するチェックリスト。プライバシーポリシー12章立て・AI利用方針・外部送信規律の踏襲パターン含む | 「新しいサイト/LPを作る」「公開前チェックして」「SEO/モバイル/ポリシーを見て」 |
