@@ -1,0 +1,25 @@
+# 鍵（.env.example だけはコミットしてよい）
+.env
+.env.*
+!.env.example
+
+# 依存・ビルド成果物
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+.venv/
+__pycache__/
+*.pyc
+
+# エディタ・OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ログ
+*.log
+npm-debug.log*

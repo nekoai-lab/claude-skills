@@ -1,0 +1,52 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Node（package.json があるときだけ。存在する script だけ実行する）
+      - if: hashFiles('package.json') != ''
+        uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - if: hashFiles('package.json') != ''
+        run: npm ci
+      - if: hashFiles('package.json') != ''
+        run: npm run lint --if-present
+      - if: hashFiles('package.json') != ''
+        run: npm test --if-present
+      - if: hashFiles('package.json') != ''
+        run: npm run build --if-present
+
+      # Python（pyproject.toml か requirements.txt があるときだけ）
+      - if: hashFiles('pyproject.toml', 'requirements.txt') != ''
+        uses: astral-sh/setup-uv@v6
+      - if: hashFiles('pyproject.toml', 'requirements.txt') != ''
+        run: |
+          if [ -f pyproject.toml ]; then
+            uv sync
+          else
+            uv venv
+            uv pip install -r requirements.txt
+          fi
+      - if: hashFiles('pyproject.toml', 'requirements.txt') != ''
+        run: |
+          if uv run --no-sync python -c "import pytest" 2>/dev/null; then
+            # 5 = テストが1つもない。落とさない
+            uv run --no-sync pytest || [ $? -eq 5 ]
+          else
+            echo "pytest が入っていないので飛ばす"
+          fi
+
+      - if: hashFiles('package.json', 'pyproject.toml', 'requirements.txt') == ''
+        run: echo "package.json / pyproject.toml / requirements.txt がないので、テストは飛ばす"

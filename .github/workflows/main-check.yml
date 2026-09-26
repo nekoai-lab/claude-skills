@@ -1,0 +1,100 @@
+name: main-check
+
+# main への push が PR 経由かを確かめ、そうでなければ Issue を立てる（止めずに気づく）
+# PR を通さない push でも、変わったファイルが全部 .github/direct-push-allow の glob に一致すれば OK
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 初回コミットは対象外
+        id: first
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "main の作成（初回コミット）なので対象外"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.first.outputs.skip != 'true'
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: PR 経由か、direct-push-allow に一致するか確かめる
+        if: steps.first.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          BEFORE: ${{ github.event.before }}
+          ACTOR: ${{ github.actor }}
+          COMPARE: ${{ github.event.compare }}
+        run: |
+          # マージ直後は API に反映されるまで少しかかることがあるので、3回まで試す
+          count=0
+          for i in 1 2 3; do
+            count=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '[.[] | select(.merged_at != null)] | length')
+            [ "$count" -gt 0 ] && break
+            sleep 10
+          done
+          if [ "$count" -gt 0 ]; then
+            echo "PR 経由: OK"
+            exit 0
+          fi
+
+          # PR を通していない。変わったファイルが全部 direct-push-allow に一致するか
+          # 許可リストは push の前の版を読む（同じ push で許可を広げても効かない）
+          reason=""
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            reason="push の前のコミットが見つからない（force push の可能性）"
+          else
+            patterns=()
+            while IFS= read -r line || [ -n "$line" ]; do
+              line="${line%%#*}"
+              line="$(printf '%s' "$line" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+              [ -n "$line" ] && patterns+=("$line")
+            done < <(git show "$BEFORE:.github/direct-push-allow" 2>/dev/null || true)
+
+            outside=()
+            while IFS= read -r f; do
+              [ -z "$f" ] && continue
+              ok=0
+              for p in "${patterns[@]}"; do
+                # shellcheck disable=SC2053  # glob として照合する（* は / もまたぐ）
+                if [[ "$f" == $p ]]; then ok=1; break; fi
+              done
+              [ $ok = 1 ] || outside+=("$f")
+            done < <(git diff --name-only --no-renames "$BEFORE" "$SHA")
+
+            if [ ${#outside[@]} -eq 0 ]; then
+              echo "PR 経由ではないが、変わったファイルが全部 direct-push-allow に一致: OK"
+              exit 0
+            fi
+            reason="direct-push-allow に一致しないファイル（${#outside[@]} 件）: $(printf '%s ' "${outside[@]:0:20}")"
+          fi
+
+          echo "PR を通さずに main に入った: $SHA"
+          echo "$reason"
+          short=${SHA:0:7}
+          gh label create direct-push --repo "$REPO" --color D93F0B \
+            --description "PR を通さずに main に入った変更" --force
+          gh issue create --repo "$REPO" --label direct-push \
+            --title "PR を通さずに main に入った変更: $short" \
+            --body "$(printf 'main に PR を通さないコミットが入りました。\n\n- コミット: %s\n- push した人: %s\n- 差分: %s\n- 理由: %s\n\n中身を確かめて、問題なければこの Issue を閉じてください。問題があれば revert の PR を作ってください。\nmain に直接でよいパスなら、.github/direct-push-allow に glob を足す PR を作ってください。\n\n（main-check.yml が自動で立てた Issue）' "$SHA" "$ACTOR" "$COMPARE" "$reason")"
+
+          if [ -n "$NTFY_TOPIC" ]; then
+            curl -s -H "Title: direct push to main ($REPO)" -H "Tags: warning" \
+              -d "$REPO に PR を通さないコミット $short（$ACTOR）" "https://ntfy.sh/$NTFY_TOPIC" > /dev/null
+          fi
