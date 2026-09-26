@@ -4,7 +4,8 @@
 
 ## 概要
 
-（1〜2行で：誰の・何を楽にするものか。詳しくは PRODUCT.md）
+月ねこAI が実際に使っている Claude Code の SKILL 集（public）。記事で読者に使ってもらうためのもの。各 SKILL は `<name>/SKILL.md`。
+スキルの正本は claude-skills-private で、ここは記事で公開するものの置き場（REPOS.md）。
 
 ## よく使うコマンド
 
