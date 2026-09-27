@@ -90,11 +90,12 @@ jobs:
           short=${SHA:0:7}
           gh label create direct-push --repo "$REPO" --color D93F0B \
             --description "PR を通さずに main に入った変更" --force
-          gh issue create --repo "$REPO" --label direct-push \
+          issue_url=$(gh issue create --repo "$REPO" --label direct-push \
             --title "PR を通さずに main に入った変更: $short" \
-            --body "$(printf 'main に PR を通さないコミットが入りました。\n\n- コミット: %s\n- push した人: %s\n- 差分: %s\n- 理由: %s\n\n中身を確かめて、問題なければこの Issue を閉じてください。問題があれば revert の PR を作ってください。\nmain に直接でよいパスなら、.github/direct-push-allow に glob を足す PR を作ってください。\n\n（main-check.yml が自動で立てた Issue）' "$SHA" "$ACTOR" "$COMPARE" "$reason")"
+            --body "$(printf 'main に PR を通さないコミットが入りました。\n\n- コミット: %s\n- push した人: %s\n- 差分: %s\n- 理由: %s\n\n中身を確かめて、問題なければこの Issue を閉じてください。問題があれば revert の PR を作ってください。\nmain に直接でよいパスなら、.github/direct-push-allow に glob を足す PR を作ってください。\n\n（main-check.yml が自動で立てた Issue）' "$SHA" "$ACTOR" "$COMPARE" "$reason")")
 
           if [ -n "$NTFY_TOPIC" ]; then
-            curl -s -H "Title: direct push to main ($REPO)" -H "Tags: warning" \
-              -d "$REPO に PR を通さないコミット $short（$ACTOR）" "https://ntfy.sh/$NTFY_TOPIC" > /dev/null
+            jq -n --arg topic "$NTFY_TOPIC" --arg title "main への直接 push: $REPO" --arg msg "PR を通さないコミット $short（$ACTOR）。$reason" --arg url "$issue_url" \
+              '{topic: $topic, title: $title, message: $msg, priority: 4, tags: ["warning"], click: $url}' \
+              | curl -fsS --max-time 10 -o /dev/null -H 'Content-Type: application/json' --data-binary @- https://ntfy.sh/ || true
           fi

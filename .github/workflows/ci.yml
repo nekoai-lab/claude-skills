@@ -50,3 +50,18 @@ jobs:
 
       - if: hashFiles('package.json', 'pyproject.toml', 'requirements.txt') == ''
         run: echo "package.json / pyproject.toml / requirements.txt がないので、テストは飛ばす"
+
+      # 失敗したら ntfy に通知（リポジトリのシークレット NTFY_TOPIC があるときだけ。値はログに出ない）
+      - name: 失敗を通知
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          REPO: ${{ github.repository }}
+          WORKFLOW: ${{ github.workflow }}
+          REF: ${{ github.ref_name }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$NTFY_TOPIC" ] || exit 0
+          jq -n --arg topic "$NTFY_TOPIC" --arg title "CI 失敗: $REPO" --arg msg "$WORKFLOW（$REF）が失敗した" --arg url "$URL" \
+            '{topic: $topic, title: $title, message: $msg, priority: 4, tags: ["x"], click: $url}' \
+            | curl -fsS --max-time 10 -o /dev/null -H 'Content-Type: application/json' --data-binary @- https://ntfy.sh/ || true
